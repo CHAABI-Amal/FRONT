@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:frontsoc/controllers/usercontroller.dart';
 import 'package:get/instance_manager.dart';
-import '../consts/consts.dart';
+import '../controllers/UserController.dart';
 import '../widgets/rounded_circular_button.dart';
 import '../widgets/rounded_text_form_field.dart';
+import 'HomePage.dart';
+import 'SignUpPage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
-  final controller= Get.put(UserController());
   @override
   State<StatefulWidget> createState() {
     return _LoginPageState();
@@ -16,18 +16,23 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  _LoginPageState();
+  late UserController controller;
+
+  // Add TextEditingController for the form fields
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(UserController());
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      backgroundColor: const Color.fromRGBO(
-        255,
-        255,
-        255,
-        1.0,
-      ),
+      backgroundColor: const Color.fromRGBO(255, 255, 255, 1.0),
       body: _buildUI(),
     );
   }
@@ -37,7 +42,6 @@ class _LoginPageState extends State<LoginPage> {
       children: [
         _header(),
         _loginForm(),
-
       ],
     );
   }
@@ -79,18 +83,10 @@ class _LoginPageState extends State<LoginPage> {
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height * 0.75,
       child: Container(
-        color: const Color.fromRGBO(
-          255,
-          255,
-          255,
-          1.0,
-        ),
+        color: const Color.fromRGBO(255, 255, 255, 1.0),
         child: Form(
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 25,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 25),
             child: Column(
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -114,11 +110,15 @@ class _LoginPageState extends State<LoginPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          const RoundedTextFormField(
+          // Pass emailController to RoundedTextFormField
+          RoundedTextFormField(
+            controller: emailController,
             hintText: "Email Address",
             prefixIcon: Icons.email_outlined,
           ),
-          const RoundedTextFormField(
+          // Pass passwordController to RoundedTextFormField
+          RoundedTextFormField(
+            controller: passwordController,
             hintText: "Password",
             prefixIcon: Icons.lock_outline,
             obscureText: true,
@@ -132,7 +132,7 @@ class _LoginPageState extends State<LoginPage> {
                 fontSize: 15,
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -147,17 +147,27 @@ class _LoginPageState extends State<LoginPage> {
         SizedBox(
           width: MediaQuery.of(context).size.width * 0.80,
           height: MediaQuery.of(context).size.height * 0.06,
-          child: const RoundedCircularButton(
+          child: RoundedCircularButton(
             text: "Sign In",
+            onPressed: () {
+              // TODO: Implement Sign In logic
+              // On successful login, navigate to HomePage
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => HomePage()),
+              );
+            },
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(
-            top: 20,
-            bottom: 30,
-          ),
+          padding: const EdgeInsets.only(top: 20, bottom: 30),
           child: GestureDetector(
-            onTap: () => {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SignUpPage()),
+              );
+            },
             child: const Text(
               "I Don't Have an Account",
               style: TextStyle(

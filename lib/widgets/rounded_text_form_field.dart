@@ -4,12 +4,15 @@ class RoundedTextFormField extends StatelessWidget {
   final bool obscureText;
   final String hintText;
   final IconData prefixIcon;
+  final TextEditingController controller; // Add controller here
 
-  const RoundedTextFormField(
-      {super.key,
-      this.obscureText = false,
-      required this.hintText,
-      required this.prefixIcon});
+  const RoundedTextFormField({
+    super.key,
+    this.obscureText = false,
+    required this.hintText,
+    required this.prefixIcon,
+    required this.controller, // Add required controller here
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,12 +33,11 @@ class RoundedTextFormField extends StatelessWidget {
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.all(
-              Radius.circular(
-                100,
-              ),
+              Radius.circular(100),
             ),
           ),
           child: TextFormField(
+            controller: controller, // Use the controller here
             decoration: InputDecoration(
               prefixIcon: Icon(
                 prefixIcon,
@@ -44,12 +46,7 @@ class RoundedTextFormField extends StatelessWidget {
               border: const OutlineInputBorder(borderSide: BorderSide.none),
               hintStyle: const TextStyle(
                 fontSize: 10,
-                color: Color.fromRGBO(
-                  131,
-                  143,
-                  160,
-                  100,
-                ),
+                color: Color.fromRGBO(131, 143, 160, 100),
               ),
               hintText: hintText,
             ),
