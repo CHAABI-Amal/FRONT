@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-
+import 'package:frontsoc/controllers/usercontroller.dart';
+import 'package:get/instance_manager.dart';
+import '../consts/consts.dart';
 import '../widgets/rounded_circular_button.dart';
 import '../widgets/rounded_text_form_field.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
+  final controller= Get.put(UserController());
   @override
   State<StatefulWidget> createState() {
     return _LoginPageState();
