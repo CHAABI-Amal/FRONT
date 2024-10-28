@@ -301,7 +301,7 @@ class _SignUpPageState extends State<SignUpPage> {
               await controller.addUser(); // Call addUser on button press
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => HomePage()),
+                MaterialPageRoute(builder: (context) => HomePage(title: '',)),
               );
             },
           ),

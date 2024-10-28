@@ -154,7 +154,7 @@ class _LoginPageState extends State<LoginPage> {
               // On successful login, navigate to HomePage
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => HomePage()),
+                MaterialPageRoute(builder: (context) => HomePage(title: '',)),
               );
             },
           ),
