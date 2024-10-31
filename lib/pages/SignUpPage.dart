@@ -21,8 +21,11 @@ class SignUpPage extends StatefulWidget {
 class _SignUpPageState extends State<SignUpPage> {
 
   TextEditingController _ageController = TextEditingController();
+  TextEditingController _phoneController = TextEditingController();
+
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  final _formKey = GlobalKey<FormState>(); // Form key for validation
 
   late UserController controller;
 
@@ -30,7 +33,7 @@ class _SignUpPageState extends State<SignUpPage> {
   void initState() {
     super.initState();
     controller = Get.put(UserController()); // Initialize controller
-    controller.getUser(); // Load static users on init
+   // controller.getUser(); // Load static users on init
   }
 
 
@@ -92,6 +95,7 @@ class _SignUpPageState extends State<SignUpPage> {
         child: Container(
           color: const Color.fromRGBO(255, 255, 255, 1.0),
           child: Form(
+            key: _formKey, // Assign the key to the Form
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 10,
@@ -103,7 +107,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   _formFields(),
-                  const SizedBox(height: 20), // Space between address and button
+                  const SizedBox(height: 20),
                   _bottomButtons(),
                 ],
               ),
@@ -174,12 +178,14 @@ class _SignUpPageState extends State<SignUpPage> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      int age = DateTime.now().year - picked.year;
+      final formattedDate = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
       setState(() {
-        _ageController.text = age.toString(); // Update the controller's text
+        _ageController.text = formattedDate; // Affiche la date au format YYYY-MM-DD
+        controller.birthDateTextController.text = formattedDate; // Set in UserController
       });
     }
   }
+
   Widget ageField() {
     return GestureDetector(
       onTap: () => _selectDate(context),
@@ -209,7 +215,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(width: 15),
               Expanded(
                 child: Text(
-                  _ageController.text.isEmpty ? "Select Age" : _ageController.text,
+                  _ageController.text.isEmpty ? "Select your birthday" : _ageController.text,
                   style: const TextStyle(
                     fontSize: 16, // Adjusted font size for better readability
                     color: Color.fromRGBO(131, 143, 160, 100),
@@ -222,6 +228,7 @@ class _SignUpPageState extends State<SignUpPage> {
       ),
     );
   }
+
 
   Widget _userList() {
     return Obx(() {
@@ -240,53 +247,155 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
 
-
   Widget _formFields() {
     return Column(
       children: [
+        // Profile Picture
         GestureDetector(
           onTap: () => _showImagePickerDialog(),
           child: CircleAvatar(
             radius: 40,
             backgroundColor: Colors.grey,
-            backgroundImage: controller.selectedImage.value != null
-                ? FileImage(controller.selectedImage.value!)
-                : null,
-            child: controller.selectedImage.value == null
-                ? const Icon(Icons.camera_alt, color: Colors.white)
-                : null,
+            backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
+            child: _imageFile == null ? const Icon(Icons.camera_alt, color: Colors.white) : null,
           ),
         ),
+
         const SizedBox(height: 20),
+
+        // Full Name Field
         RoundedTextFormField(
           hintText: "Full Name",
           prefixIcon: Icons.person_outline,
           controller: controller.nameTextController,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your full name';
+            }
+            return null;
+          },
         ),
+
         const SizedBox(height: 15),
+
+        // Email Field with Gmail Validation
         RoundedTextFormField(
           hintText: "Email Address",
           prefixIcon: Icons.email_outlined,
           controller: controller.emailTextController,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter an email address';
+            }
+            // Check for presence of '@'
+            if (!value.contains('@')) {
+              return 'Email must contain "@"';
+            }
+            return null; // Valid email
+          },
         ),
+
         const SizedBox(height: 15),
+
+        // Password Field
         RoundedTextFormField(
           hintText: "Password",
           prefixIcon: Icons.lock_outline,
           obscureText: true,
           controller: controller.passwordTextController,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a password';
+            }
+            if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$').hasMatch(value)) {
+              return 'Password must be at least 8 characters long, include uppercase and lowercase letters, numbers, and special characters.';
+            }
+            return null; // Valid password
+          },
         ),
+
         const SizedBox(height: 15),
+
+        // Phone Number Field
+        RoundedTextFormField(
+          hintText: "Numéro de Téléphone",
+          prefixIcon: Icons.phone,
+          controller: controller.phoneNumberTextController,
+          keyboardType: TextInputType.phone,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your phone number';
+            }
+            return null;
+          },
+        ),
+
+        const SizedBox(height: 15),
+
+        // Gender Field
         genderField(),
+
         const SizedBox(height: 15),
+
+        // Age Field
         ageField(),
+
         const SizedBox(height: 15),
+
+        // Address Field
         RoundedTextFormField(
           hintText: "Address",
           prefixIcon: Icons.home_outlined,
           controller: controller.addressTextController,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your address';
+            }
+            return null;
+          },
         ),
       ],
+    );
+  }
+
+
+// Function to manually validate form fields
+  bool validateForm() {
+    if (controller.nameTextController.text.isEmpty) {
+      _showError("Please enter your full name");
+      return false;
+    }
+    if (controller.emailTextController.text.isEmpty || !controller.emailTextController.text.contains('@')) {
+      _showError("Please enter a valid email address");
+      return false;
+    }
+    if (controller.passwordTextController.text.isEmpty ||
+        !RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$').hasMatch(controller.passwordTextController.text)) {
+      _showError("Password must be at least 8 characters long, include uppercase, lowercase, numbers, and special characters");
+      return false;
+    }
+    if (controller.phoneNumberTextController.text.isEmpty) {
+      _showError("Please enter your phone number");
+      return false;
+    }
+    if (_ageController.text.isEmpty) {
+      _showError("Please select your birthday");
+      return false;
+    }
+    if (controller.addressTextController.text.isEmpty) {
+      _showError("Please enter your address");
+      return false;
+    }
+    return true;
+  }
+
+// Show error message using SnackBar
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
     );
   }
 
@@ -298,17 +407,24 @@ class _SignUpPageState extends State<SignUpPage> {
           child: RoundedCircularButton(
             text: "Sign Up",
             onPressed: () async {
-              await controller.addUser(); // Call addUser on button press
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => HomePage(title: '',)),
-              );
+              if (validateForm()) {
+                await controller.addUser();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => HomePage(title: '',)),
+                );
+              } else {
+                _showError("Please fill out all fields correctly.");
+              }
             },
           ),
         ),
       ],
     );
   }
+
+
+
 
   Future<void> _pickImage(ImageSource source) async {
     PermissionStatus status;

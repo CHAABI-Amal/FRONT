@@ -4,6 +4,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../consts/consts.dart';
+
 class MapViewPage extends StatefulWidget {
   const MapViewPage({super.key});
 
@@ -24,7 +26,7 @@ class _MapViewPageState extends State<MapViewPage> {
 
   Future<void> fetchHelpLocations() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.0.109:3000/api/v1/centers'));
+      final response = await http.get(Uri.parse('$baseURL/centers'));
 
       if (response.statusCode == 200) {
         final jsonResponse = json.decode(response.body);
@@ -65,7 +67,7 @@ class _MapViewPageState extends State<MapViewPage> {
 
   Future<void> _createCenter(String name, String description, double latitude, double longitude) async {
     final response = await http.post(
-      Uri.parse('http://192.168.0.109:3000/api/v1/centers'),
+      Uri.parse('$baseURL/centers'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },

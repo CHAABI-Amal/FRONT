@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // Import the http package
-import 'dart:convert'; // Import for JSON decoding
+import 'dart:convert';
+
+import '../consts/consts.dart'; // Import for JSON decoding
 
 class ListViewPage extends StatefulWidget {
   const ListViewPage({super.key});
@@ -22,7 +24,7 @@ class _ListViewPageState extends State<ListViewPage> {
 
   Future<void> fetchHelpLocations() async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.0.109:3000/api/v1/centers'));
+      final response = await http.get(Uri.parse('$baseURL/centers'));
 
       print('Response status: ${response.statusCode}');
       print('Response body: ${response.body}');

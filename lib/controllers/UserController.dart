@@ -1,124 +1,88 @@
-import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../models/UserModel.dart';
-import '../consts/consts.dart';
+import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 
 class UserController extends GetxController {
+  // Text Controllers
+  final emailTextController = TextEditingController();
+  final passwordTextController = TextEditingController();
+  final nameTextController = TextEditingController();
+  final addressTextController = TextEditingController();
+  final birthDateTextController = TextEditingController();
+  final phoneNumberTextController = TextEditingController();
 
-  TextEditingController nameTextController = TextEditingController();
-  TextEditingController emailTextController = TextEditingController();
-  TextEditingController passwordTextController = TextEditingController();
-  TextEditingController genderTextController = TextEditingController();
-  TextEditingController ageTextController = TextEditingController();
-  TextEditingController addressTextController = TextEditingController();
+  // List to hold user data
+  var users = [].obs;
 
-  Rx<File?> selectedImage = Rx<File?>(null); // For image file handling
 
-  // Declare an observable list to store UserModel objects
-  RxList<UserModel> users = <UserModel>[].obs;
 
-  // Static user data for testing
-  final List<UserModel> staticUsers = [
-    UserModel(name: 'John Doe', email: 'john@example.com', password: 'password123', gender: 'Male', age: 30, address: '123 Street', imageUrl: null),
-    UserModel(name: 'Jane Smith', email: 'jane@example.com', password: 'password456', gender: 'Female', age: 28, address: '456 Avenue', imageUrl: null),
-  ];
+  Future<void> getUser(String email) async {
+    var headers = {
+      'Content-Type': 'application/json'
+    };
+    var request = http.Request('GET', Uri.parse('http://192.168.0.105:9987/api/user/get_user'));
+    request.body = json.encode({
+      "userEmail": email
+    });
+    request.headers.addAll(headers);
 
+    http.StreamedResponse response = await request.send();
+
+    if (response.statusCode == 200) {
+      final data = json.decode(await response.stream.bytesToString());
+      users.add(data);
+      print("Connexion réussie : ${data['fullName']}");
+    }
+    else {
+      print('Erreur : ${response.reasonPhrase}');
+    }
+  }
+
+
+  // Function to add a user
   Future<void> addUser() async {
-    // Check if debugging
-    if (isdebug) {
-      // Create a new user instance from the form inputs
-      final userData = UserModel(
-        name: nameTextController.text,
-        email: emailTextController.text,
-        password: passwordTextController.text,
-        gender: genderTextController.text,
-        age: int.tryParse(ageTextController.text),
-        address: addressTextController.text,
-        imageUrl: selectedImage.value != null ? selectedImage.value!.path : null,
-      );
+    final url = Uri.parse('http://192.168.0.105:9986/api/auth/sing_up');
 
-      // Add user data to static users list
-      staticUsers.add(userData);
-      users.value = List.from(staticUsers); // Update observable list
-      Get.snackbar('Success', 'User added successfully (Debug Mode)');
-      return; // Exit early from method
+    // Vérifiez si tous les champs sont remplis
+    if (emailTextController.text.isEmpty ||
+        passwordTextController.text.isEmpty ||
+        nameTextController.text.isEmpty ||
+        birthDateTextController.text.isEmpty ||
+        phoneNumberTextController.text.isEmpty ||
+        addressTextController.text.isEmpty) {
+      print("Tous les champs doivent être remplis !");
+      return; // Arrêtez l'exécution si des champs sont vides
     }
 
-    // Production code to add user
-    Uri url = Uri.parse('${baseurl}adduser');
-
-    // Collecting data from the form
-    final userData = UserModel(
-      name: nameTextController.text,
-      email: emailTextController.text,
-      password: passwordTextController.text,
-      gender: genderTextController.text,
-      age: int.tryParse(ageTextController.text),
-      address: addressTextController.text,
-      imageUrl: selectedImage.value != null ? selectedImage.value!.path : null,
-    );
+    final body = json.encode({
+      'email': emailTextController.text,
+      'password': passwordTextController.text,
+      'fullName': nameTextController.text,
+      'birthDate': birthDateTextController.text,
+      'phoneNumber': phoneNumberTextController.text,
+      'address': addressTextController.text,
+    });
 
     try {
-      var response = await http.post(
+      final response = await http.post(
         url,
-        body: jsonEncode(userData.toJson()),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: body,
       );
 
-      if (response.statusCode == 201) {
-        // Add user data to static users list
-        staticUsers.add(userData);
-        users.value = List.from(staticUsers); // Update observable list
-        Get.snackbar('Success', 'User added successfully');
+      if (response.statusCode == 200) {
+        print("Utilisateur ajouté avec succès !");
       } else {
-        Get.snackbar('Error', 'Failed to add user');
+        print('Erreur lors de l\'ajout de l\'utilisateur: ${response.statusCode}');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Error occurred: $e');
+      print('Erreur lors de l\'envoi de la requête: $e');
     }
   }
 
 
-  Future<void> getUser() async {
-    // Check if debugging
-    if (isdebug) {
-      // Return static users in debug mode
-      users.value = List.from(staticUsers);
-      return; // Exit early from method
-    }
-
-    Uri url = Uri.parse("${baseurl}getuser");
-
-    try {
-      // Await the HTTP GET request
-      var res = await http.get(url);
-
-      // If the request is successful (status code 200)
-      if (res.statusCode == 200) {
-        // Parse the response body as a list of UserModel objects
-        var data = List<UserModel>.from(
-            jsonDecode(res.body).map((e) => UserModel.fromJson(e))
-        ).toList();
-
-        // If the data is not null, assign it to the users observable
-        if (data != null) {
-          users.value = data;
-        }
-      } else {
-        // Handle unsuccessful response status code
-        Get.snackbar("Error", "Failed to retrieve users: ${res.statusCode}");
-      }
-    } catch (e) {
-      // Show an error message if an exception occurs
-      Get.snackbar("Error", "An error occurred: $e");
-    }
-  }
-
-  // Optional: Image picker handler
-  void pickImage(File? image) {
-    selectedImage.value = image;
-  }
 }
