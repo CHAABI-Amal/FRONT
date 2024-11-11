@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 
+import '../consts/consts.dart';
+
 class UserController extends GetxController {
   // Text Controllers
   final emailTextController = TextEditingController();
@@ -22,7 +24,7 @@ class UserController extends GetxController {
     var headers = {
       'Content-Type': 'application/json'
     };
-    var request = http.Request('GET', Uri.parse('http://192.168.0.105:9987/api/user/get_user'));
+    var request = http.Request('GET', Uri.parse('$baseURLUser/api/user/get_user'));
     request.body = json.encode({
       "userEmail": email
     });
@@ -40,10 +42,12 @@ class UserController extends GetxController {
     }
   }
 
-
+  String getCurrentUserEmail() {
+    return emailTextController.text;
+  }
   // Function to add a user
   Future<void> addUser() async {
-    final url = Uri.parse('http://192.168.0.105:9986/api/auth/sing_up');
+    final url = Uri.parse('$baseURLUser/api/auth/sing_up');
 
     // Vérifiez si tous les champs sont remplis
     if (emailTextController.text.isEmpty ||

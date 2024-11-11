@@ -411,7 +411,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 await controller.addUser();
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => HomePage(title: '',)),
+                  MaterialPageRoute(builder: (context) => HomePage(title: 'My Home Page')),
                 );
               } else {
                 _showError("Please fill out all fields correctly.");

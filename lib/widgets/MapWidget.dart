@@ -10,12 +10,12 @@ class MapWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Pharmacy List',
+      title: 'Community List',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Pharmacy List'),
+      home: const MyHomePage(title: 'Community List'),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontsoc/pages/HomePage.dart';
 import 'package:frontsoc/pages/LoginPage.dart';
 
 void main() {
@@ -9,6 +10,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
+
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Login Page UI',
@@ -25,4 +27,6 @@ class MyApp extends StatelessWidget {
       home: const LoginPage(),
     );
   }
+
+
 }
