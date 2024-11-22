@@ -369,11 +369,13 @@ class _SignUpPageState extends State<SignUpPage> {
       _showError("Please enter a valid email address");
       return false;
     }
-    if (controller.passwordTextController.text.isEmpty ||
+   /* if (controller.passwordTextController.text.isEmpty ||
         !RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$').hasMatch(controller.passwordTextController.text)) {
       _showError("Password must be at least 8 characters long, include uppercase, lowercase, numbers, and special characters");
       return false;
     }
+
+    */
     if (controller.phoneNumberTextController.text.isEmpty) {
       _showError("Please enter your phone number");
       return false;
