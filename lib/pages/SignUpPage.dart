@@ -34,6 +34,7 @@ class _SignUpPageState extends State<SignUpPage> {
     super.initState();
     controller = Get.put(UserController()); // Initialize controller
    // controller.getUser(); // Load static users on init
+    //test
   }
 
 
