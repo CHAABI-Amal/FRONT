@@ -7,10 +7,20 @@ import '../consts/consts.dart';
 
 class CommunityController extends GetxController {
   List communityInfos = [];
+  String? selectedCommunityName; // Add this field to store the selected community name.
+
+
+
+
+  void setSelectedCommunityName(String communityName) {
+    selectedCommunityName = communityName;
+    update(); // Notify listeners (if required)
+  }
 
   // Function to get all community names
   Future<List<String>> _getAllCommunities() async {
     var url = Uri.parse('$baseURLCommunity/api/community/get_all_communities');
+
     var headers = {
       'Content-Type': 'application/json',
     };
@@ -75,13 +85,14 @@ class CommunityController extends GetxController {
 
     for (final name in communityNames) {
       final data = await getCommunityInfo(name);
-      if (data.isNotEmpty) { // Check if the retrieved info is not empty
+      if (data.isNotEmpty) {
         communityInfos.add(data);
       }
     }
 
     print("All communities retrieved: $communityInfos");
   }
+
   // Function to set/update info for a community
   Future<void> setCommunityInfo({
     required String communityName,

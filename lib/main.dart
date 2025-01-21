@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:frontsoc/pages/HomePage.dart';
 import 'package:frontsoc/pages/LoginPage.dart';
@@ -28,8 +29,8 @@ class MyApp extends StatelessWidget {
 }
 
 
+*/
 
- */
 
 void main() {
   runApp(const MyApp());
@@ -57,8 +58,6 @@ class MyApp extends StatelessWidget {
       home: const LoginPage(),
     );
   }
-
-
 }
 
 

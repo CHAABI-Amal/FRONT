@@ -1,8 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // Import the http package
-import 'dart:convert';
 
-import '../consts/consts.dart'; // Import for JSON decoding
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: ListViewPage(),
+    );
+  }
+}
+
 
 class ListViewPage extends StatefulWidget {
   const ListViewPage({super.key});
@@ -12,7 +25,7 @@ class ListViewPage extends StatefulWidget {
 }
 
 class _ListViewPageState extends State<ListViewPage> {
-  List<dynamic> _helpLocations = [];
+  List<Map<String, dynamic>> _helpLocations = [];
   bool _isLoading = true;
   String? _error;
 
@@ -22,55 +35,48 @@ class _ListViewPageState extends State<ListViewPage> {
     fetchHelpLocations();
   }
 
-  // Fetch help locations from the server
+  // Simule l'obtention des emplacements avec des données statiques
   Future<void> fetchHelpLocations() async {
-    try {
-      final response = await http.get(Uri.parse('$baseURL/centers'));
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        // Parse the JSON and access the 'data' field
-        final jsonResponse = json.decode(response.body);
-        setState(() {
-          _helpLocations = jsonResponse['data']; // Accessing the 'data' property
-          _isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to load help locations');
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = e.toString();
-      });
-    }
+    await Future.delayed(const Duration(seconds: 2)); // Simule un délai
+    setState(() {
+      _helpLocations = [
+        {
+          'id': 1,
+          'name': 'Location 1',
+          'latitude': 33.5731,
+          'longitude': -7.5898,
+          'status': 'Active'
+        },
+        {
+          'id': 2,
+          'name': 'Location 2',
+          'latitude': 34.0209,
+          'longitude': -6.8416,
+          'status': 'Inactive'
+        },
+        {
+          'id': 3,
+          'name': 'Location 3',
+          'latitude': 32.293,
+          'longitude': -6.553,
+          'status': 'Pending'
+        },
+      ];
+      _isLoading = false;
+    });
   }
 
-  // Delete a help location by ID
-  Future<void> deleteHelpLocation(int id) async {
-    try {
-      final response = await http.delete(Uri.parse('$baseURL/centers/$id'));
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _helpLocations.removeWhere((location) => location['id'] == id);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Center deleted successfully')),
-        );
-      } else {
-        throw Exception('Failed to delete the center');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
+  // Supprime un emplacement en fonction de son ID
+  void deleteHelpLocation(int id) {
+    setState(() {
+      _helpLocations.removeWhere((location) => location['id'] == id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Location $id deleted')),
+    );
   }
 
-  // Show dialog to edit help location
+  // Affiche une boîte de dialogue pour modifier un emplacement
   void _showEditDialog(Map<String, dynamic> location) {
     TextEditingController nameController =
     TextEditingController(text: location['name']);
@@ -103,9 +109,10 @@ class _ListViewPageState extends State<ListViewPage> {
           ),
           TextButton(
             onPressed: () {
-              // Handle the edit action
-              _editHelpLocation(location['id'], nameController.text,
-                  statusController.text);
+              setState(() {
+                location['name'] = nameController.text;
+                location['status'] = statusController.text;
+              });
               Navigator.pop(context);
             },
             child: const Text('Save'),
@@ -114,42 +121,6 @@ class _ListViewPageState extends State<ListViewPage> {
       ),
     );
   }
-
-  // Edit help location by ID
-// Example error handling in Flutter to get more insights
-  Future<void> _editHelpLocation(int id, String newName, String newStatus) async {
-    try {
-      final response = await http.put(
-        Uri.parse('$baseURL/centers/$id'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'name': newName, 'status': newStatus}),
-      );
-
-      print('Response status: ${response.statusCode}');
-      print('Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        setState(() {
-          final index = _helpLocations.indexWhere((loc) => loc['id'] == id);
-          if (index != -1) {
-            _helpLocations[index]['name'] = newName;
-            _helpLocations[index]['status'] = newStatus;
-          }
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Center updated successfully')),
-        );
-      } else {
-        throw Exception('Failed to update the center. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error in _editHelpLocation: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -181,8 +152,7 @@ class _ListViewPageState extends State<ListViewPage> {
                     MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        location['name'] ??
-                            'Unnamed Location',
+                        location['name'] ?? 'Unnamed Location',
                         style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold),
@@ -207,6 +177,7 @@ class _ListViewPageState extends State<ListViewPage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 10),
                   Text(
                     'Location: (${location['latitude']}, ${location['longitude']})',

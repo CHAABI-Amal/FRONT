@@ -10,7 +10,9 @@ import 'dart:convert';
 import '../consts/consts.dart';
 import '../controllers/CommentController.dart';
 import '../controllers/CommunityController.dart';
+import '../controllers/UserController.dart';
 import 'CategoryPage.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MapViewPage extends StatefulWidget {
   const MapViewPage({super.key});
@@ -21,13 +23,8 @@ class MapViewPage extends StatefulWidget {
 }
 
 class _MapViewPageState extends State<MapViewPage> {
-  List<Map<String, dynamic>> _helpLocations = [
-    {"latitude": 33.5356324, "longitude":-7.6181929, "name": "Rabat"},
-    {"latitude": 33.5900, "longitude": -7.6150, "name": "Marrakech"},
-    {"latitude": 33.5460, "longitude": -7.6180, "name": "Casablanca"},
-    {"latitude": 33.5971747, "longitude": -7.5285529, "name": "Casablanca"},
-    // Ajouter d'autres emplacements si nécessaire
-  ];
+  final MapController _mapController = MapController(); // MapController instance
+  double _currentZoom = 10.0; // Default zoom level
   bool _isLoading = true;
   String? _error;
   List<dynamic> _comments = [];
@@ -39,36 +36,50 @@ class _MapViewPageState extends State<MapViewPage> {
   @override
   void initState() {
     super.initState();
-    fetchCommunities();
+    communityController.selectedCommunityName = "Community 1"; // Example
 
-    commentController.getComments();
-    communityController.getAllCommunities();
-
-  }
-  // Method to fetch communities
-  fetchCommunities() async {
-    try {
-      // Call the method from the controller
-      await communityController.getAllCommunities();
-
-      // Check if data is loaded successfully
-      if (communityController.communityInfos.isEmpty) {
-        setState(() {
-          _isLoading = false;
-          _error = 'No communities found';
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
+    // Ensure the community name is available
+    final String? communityName = communityController.selectedCommunityName;
+    print("Selected Community Name: $communityName");
+    if (communityName != null && communityName.isNotEmpty) {
+      commentController.getComments(communityName);
+    } else {
       setState(() {
-        _isLoading = false;
-        _error = e.toString();
+        _error = "Community name not available.";
       });
     }
+
+
+    communityController.getAllCommunities().then((_) {
+      setState(() {
+        _isLoading = false;
+      });
+    }).catchError((e) {
+      setState(() {
+        _error = e.toString();
+      });
+    });
   }
+
+
+// Zoom in function
+  void _zoomIn() {
+    setState(() {
+      _currentZoom = (_currentZoom + 1).clamp(1.0, 18.0); // Clamp zoom level to valid range
+      _mapController.move(_mapController.center, _currentZoom);
+    });
+  }
+
+  // Zoom out function
+  void _zoomOut() {
+    setState(() {
+      _currentZoom = (_currentZoom - 1).clamp(1.0, 18.0); // Clamp zoom level to valid range
+      _mapController.move(_mapController.center, _currentZoom);
+    });
+  }
+
+  // Method to fetch communities
+
   void _showCreateCenterDialog() {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
@@ -141,6 +152,9 @@ class _MapViewPageState extends State<MapViewPage> {
     );
   }
 
+
+
+
   void _toggleMapView() {
     // Logic to toggle between different map types or views
     // This is a placeholder for whatever map view switching logic you may need
@@ -166,6 +180,8 @@ class _MapViewPageState extends State<MapViewPage> {
     );
   }
   void _showBottomSheetMenu() {
+
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -367,7 +383,10 @@ class _MapViewPageState extends State<MapViewPage> {
 
   // BottomSheet method
 
-  void _showBottomSheet(BuildContext context) {
+  void _showBottomSheet(BuildContext context, Map<String, dynamic> community) {
+    final CommentController commentController = Get.put(CommentController());
+    commentController.getComments(community['communityName']); // Fetch comments
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -400,7 +419,7 @@ class _MapViewPageState extends State<MapViewPage> {
               child: ListView(
                 controller: scrollController,
                 children: [
-                  // Header with title, rating, and close button
+                  // Header with title and close button
                   Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Row(
@@ -411,19 +430,21 @@ class _MapViewPageState extends State<MapViewPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'ERHAM Cat Shelter',
+                                community['communityName'] ?? 'Community Name',
                                 style: TextStyle(
                                   fontSize: 20.0,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              Row(
-                                children: [
-                                  Icon(Icons.star, color: Colors.amber, size: 16),
-                                  Text('3.8 (238)', style: TextStyle(fontSize: 12)),
-                                  SizedBox(width: 10),
-                                  Text('Shelter · 1 min', style: TextStyle(fontSize: 12)),
-                                ],
+                              SizedBox(height: 5),
+                              Text(
+                                'Type: ${community['communityType'] ?? 'N/A'}',
+                                style: TextStyle(fontSize: 14),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                community['communityDescription'] ?? 'No description available.',
+                                style: TextStyle(fontSize: 14),
                               ),
                             ],
                           ),
@@ -436,25 +457,75 @@ class _MapViewPageState extends State<MapViewPage> {
                     ),
                   ),
 
-                  // Action buttons
+                  // Contact Information Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Contact Information',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Icon(Icons.phone, color: Colors.grey),
+                            SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () {
+                                if (community['contactInfo'] != null) {
+                                  launchUrl('tel:${community['contactInfo']}');
+                                }
+                              },
+                              child: Text(
+                                community['contactInfo'] ?? 'N/A',
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Icon(Icons.language, color: Colors.grey),
+                            SizedBox(width: 10),
+                            GestureDetector(
+                              onTap: () {
+                                if (community['website'] != null) {
+                                  launchUrl(community['website']);
+                                }
+                              },
+                              child: Text(
+                                community['website'] ?? 'N/A',
+                                style: TextStyle(color: Colors.blue),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 10),
+                      ],
+                    ),
+                  ),
+
+                  // Action Buttons
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildActionButton(Icons.directions, 'Directions'),
-                        _buildActionButton(Icons.star, 'Start'),
                         _buildActionButton(Icons.call, 'Call'),
-                        _buildActionButton(Icons.save, 'Save'),
+                        _buildActionButton(Icons.language, 'Website'),
                       ],
                     ),
                   ),
 
+                  SizedBox(height: 20),
 
-
-                  // Section for adding photos/videos
+                  // Add Photos/Videos Section
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -466,55 +537,95 @@ class _MapViewPageState extends State<MapViewPage> {
                           ),
                         ),
                         SizedBox(height: 10),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // Functionality for adding photos or videos goes here
+                        GestureDetector(
+                          onTap: () {
+                            // Add functionality to upload images or videos
                           },
-                          icon: Icon(Icons.add_a_photo),
-                          label: Text('Add Photo/Video'),
+                          child: Container(
+                            height: 200,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.add_a_photo, size: 40, color: Colors.grey),
+                                  SizedBox(height: 10),
+                                  Text('Upload Photos/Videos'),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  // Images grid section
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: SizedBox(
-                      height: 200,
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        children: [
-                          _buildImageCard('assets/images/1.png'),
-                          _buildImageCard('assets/images/2.png'),
-                          _buildImageCard('assets/images/3.png'),
-                          _buildImageCard('assets/images/4.png'),
-                        ],
-                      ),
-                    ),
-                  ),
 
-                  // Text input section
+                  SizedBox(height: 20),
+
+                  // Comments Section
+                  // Comments Section
                   Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: TextField(
-                      onSubmitted: (commentText) {
-                        // Ajouter un commentaire
-                        commentController.addComment(commentText);
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'Ask the community',
-                        prefixIcon: Icon(Icons.question_answer),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Comments',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
+                        SizedBox(height: 10),
+                        Obx(() {
+                          if (commentController.comments.isEmpty) {
+                            return Text('No comments yet.');
+                          }
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            itemCount: commentController.comments.length,
+                            itemBuilder: (context, index) {
+                              final comment = commentController.comments[index];
+                              return ListTile(
+                                leading: CircleAvatar(child: Icon(Icons.person)),
+                                title: Text(comment['senderEmail'] ?? 'Anonymous'),
+                                subtitle: Text(comment['content'] ?? ''),
+                              );
+                            },
+                          );
+                        }),
+
+
+
+                        TextField(
+                          onSubmitted: (text) {
+                            if (communityController.selectedCommunityName != null) {
+                              commentController.addComment(
+                                communityController.selectedCommunityName!,
+                                text,
+                              );
+                            } else {
+                              print("No community selected.");
+                            }
+                          },
+                          decoration: InputDecoration(
+                            labelText: "Write a comment",
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+
+                      ],
                     ),
                   ),
 
-                  // Ratings summary
+
+                  SizedBox(height: 20),
+
+                  // Ratings Summary
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(
@@ -526,7 +637,7 @@ class _MapViewPageState extends State<MapViewPage> {
                         ),
                         Row(
                           children: [
-                            Text(
+                             Text(
                               '3.7',
                               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                             ),
@@ -538,110 +649,7 @@ class _MapViewPageState extends State<MapViewPage> {
                     ),
                   ),
 
-                  // Rating bars
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildRatingBar(),
-                  ),
                   Divider(),
-
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Obx(() {
-                      if (commentController.comments.isEmpty) {
-                        return Center(
-                          child: Text(
-                            'No comments yet',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                        );
-                      } else {
-                        return Column(
-                          children: [
-                            for (var comment in commentController.comments)
-
-                              ListTile(
-                                leading: CircleAvatar(
-                                  child: Icon(Icons.person),
-                                ),
-                                title: Text(
-                                  comment['senderEmail'] ?? 'N/A',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12, // Reduced font size for email
-                                  ),
-                                ),
-
-
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      comment['content'] ?? '', // Display comment content
-                                      style: TextStyle(fontSize: 14, color: Colors.black),
-                                    ),
-                                    Text(
-                                      _formatDate(comment['lastUpdateDate'] ?? ''),
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                  ],
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: List.generate(5, (index) {
-                                    int rating = 3; // Replace this with actual rating if available
-                                    return Icon(
-                                      Icons.star,
-                                      color: index < rating ? Colors.amber : Colors.grey,
-                                      size: 16,
-                                    );
-                                  }),
-                                ),
-
-                              ),
-
-                          ],
-                        );
-                      }
-                    }),
-                  ),
-
-                  Divider(),
-
-                  // Review Section
-                  ListTile(
-                    leading: CircleAvatar(
-                      child: Icon(Icons.person),
-                    ),
-                    title: Text('Abderrahman Aimara'),
-                    subtitle: Text('9 months ago'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.star, color: Colors.amber),
-                        Icon(Icons.star, color: Colors.amber),
-                        Icon(Icons.star, color: Colors.amber),
-                        Icon(Icons.star, color: Colors.amber),
-                        Icon(Icons.star, color: Colors.grey),
-                      ],
-                    ),
-                  ),
-                  Divider(),
-
-                  // Additional Info (Location, Hours, Website)
-                  ListTile(
-                    leading: Icon(Icons.location_on, color: Colors.grey),
-                    title: Text('R322, Mohammédia'),
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.access_time, color: Colors.grey),
-                    title: Text('Open · Closes 12 AM'),
-                    trailing: Text('Open', style: TextStyle(color: Colors.green)),
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.language, color: Colors.grey),
-                    title: Text('erhamcatshelter.ma'),
-                  ),
                 ],
               ),
             );
@@ -649,6 +657,12 @@ class _MapViewPageState extends State<MapViewPage> {
         );
       },
     );
+  }
+
+  void launchUrl(String url) {
+    // You can use `url_launcher` to open the phone or website
+    // Ensure you add `url_launcher` in pubspec.yaml
+    launch(url);
   }
 
 // Helper method for building action buttons
@@ -705,65 +719,6 @@ class _MapViewPageState extends State<MapViewPage> {
             width: width,
             color: Colors.amber,
           ),
-        ],
-      ),
-    );
-  }
-
-  // Dummy method to avoid errors
-
-  ///*********************************************************************
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(child: Text('Error: $_error'))
-          : Stack(
-        children: [
-          // Flutter map widget
-          FlutterMap(
-            options: MapOptions(
-              center: LatLng(33.5731, -7.5898),
-              zoom: 13.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: _helpLocations.map((location) {
-                  return Marker(
-                    width: 60.0,
-                    height: 60.0,
-                    point: LatLng(location['latitude'], location['longitude']),
-                    builder: (ctx) => GestureDetector(
-                      onTap: () {
-                            _showBottomSheet(context);
-                          },
-
-                          child: Container(
-                            width: 50.0,
-                            height: 50.0,
-                            decoration: BoxDecoration(
-                              color: Colors.lightBlue[300],
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.location_on,
-                              color: Colors.white,
-                              size: 30.0,
-                            ),
-                          ),
-                        ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-          // Positioned buttons
           Positioned(
             top: 100.0, // Adjust the position based on your needs
             right: 10.0, // Adjust the position based on your needs
@@ -800,10 +755,117 @@ class _MapViewPageState extends State<MapViewPage> {
           ),
         ],
       ),
+    );
+  }
+
+  // Dummy method to avoid errors
+
+  ///*********************************************************************
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Flutter map widget
+          FlutterMap(
+            options: MapOptions(
+              center: LatLng(33.5731, -7.5898), // Default center location
+              zoom: 10.0,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: ['a', 'b', 'c'],
+              ),
+
+              MarkerLayer(
+                markers: communityController.communityInfos.map((community) {
+                  if (community['location'] != null &&
+                      community['location']['x'] != null &&
+                      community['location']['y'] != null) {
+                    return Marker(
+                      point: LatLng(community['location']['x'], community['location']['y']),
+                      builder: (ctx) => GestureDetector(
+                        onTap: () {
+                          // Show bottom sheet when the marker is tapped
+                          _showBottomSheet(context, community);
+                        },
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.red,
+                          size: 40.0,
+                        ),
+                      ),
+                    );
+                  }
+                  return Marker(
+                    point: LatLng(0.0, 0.0), // Default to prevent crashes
+                    builder: (ctx) => const SizedBox(),
+                  );
+                }).toList(),
+              ),
+
+            ],
+          ),
+          Positioned(
+              bottom: 50,
+              right: 10,
+              child: Column(
+                children: [
+                  FloatingActionButton(
+                    heroTag: 'zoomIn', // Unique tag for each FAB
+                    mini: true,
+                    onPressed: _zoomIn,
+                    child: const Icon(Icons.add),
+                  ),
+                  const SizedBox(height: 10),
+                  FloatingActionButton(
+                    heroTag: 'zoomOut',
+                    mini: true,
+                    onPressed: _zoomOut,
+                    child: const Icon(Icons.remove),
+                  ),
+                ],
+              ),
+          ),
+          // Show loading indicator if data is still being fetched
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(),
+            ),
+          // Show error message if there's an error
+          if (_error != null && !_isLoading)
+            Center(
+              child: Text(
+                _error!,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+              ),
+            ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showBottomSheetMenu,
-        child: Icon(Icons.menu),
+        child: const Icon(Icons.menu),
       ),
+    );
+  }
+
+}
+
+void main() {
+  // Initialisation des contrôleurs requis
+  Get.put(UserController()); // Assurez-vous que UserController est défini
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: MapViewPage(),
     );
   }
 }

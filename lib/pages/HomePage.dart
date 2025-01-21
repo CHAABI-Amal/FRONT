@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontsoc/pages/SimpleMapPage.dart';
 import 'ListViewPage.dart';
 import 'MapViewPage.dart';
 import 'OnlineRegistrations.dart';
@@ -122,6 +123,14 @@ class _HomePageState extends State<HomePage> {
               title: const Text("Ratings"),
               onTap: () {
                 // Add logic here
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.map, color: Colors.black),
+              title: const Text("Map"),
+              onTap: () {
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (c) => SimpleMapPage()));
               },
             ),
             ListTile(

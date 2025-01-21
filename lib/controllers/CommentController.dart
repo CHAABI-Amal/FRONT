@@ -12,61 +12,64 @@ class CommentController extends GetxController {
   var comments = [].obs;
   final UserController userController = Get.find<UserController>();
 
-  Future<void> getComments() async {
+  Future<void> getComments(String communityName) async {
     var url = Uri.parse('$baseURLCommunity/api/community_comment/get_all_flat');
-    var headers = {
-      'Content-Type': 'application/json',
-    };
-    var request = http.Request('GET', url);
-    request.body = json.encode({
-      "communityName": "Community 1" // Ensure this matches the expected field on the backend
-    });
-    request.headers.addAll(headers);
+    var headers = {'Content-Type': 'application/json'};
 
     try {
-      http.StreamedResponse response = await request.send();
+      print("Sending request to get comments for: $communityName");
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: json.encode({"communityName": communityName}),
+      );
+
+      print("Response status: ${response.statusCode}");
+      print("Response body: ${response.body}");
 
       if (response.statusCode == 200) {
-        final responseBody = await response.stream.bytesToString();
-        final data = json.decode(responseBody);
-
-        // Assuming 'data' is an array of comments or adjust as necessary
-        comments.value = data is List ? data : data['comments'] ?? [];
-        print("Commentaires récupérés : $data");
+        final data = json.decode(response.body);
+        if (data is List) {
+          comments.value = data;
+          print("Comments retrieved: $data");
+        } else {
+          print("Unexpected response format: $data");
+          comments.value = [];
+        }
       } else {
-        print('Erreur lors de la récupération des commentaires: ${response.reasonPhrase}');
+        print("Error fetching comments: ${response.reasonPhrase}");
       }
     } catch (e) {
-      print('Erreur lors de la requête: $e');
+      print("Error during request: $e");
     }
   }
 
+  Future<void> addComment(String communityName, String commentText) async {
+    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUser email: ${userController.getCurrentUserEmail()}");
 
-  Future<void> addComment(String commentText) async {
     var url = Uri.parse('$baseURLCommunity/api/community_comment/add');
-    var headers = {
-      'Content-Type': 'application/json'
-    };
-
-    // Update the request body to match the expected fields
+    var headers = {'Content-Type': 'application/json'};
     final body = json.encode({
-      'communityName': 'Community 1', // Use your dynamic community name if necessary
-      'senderEmail': userController.getCurrentUserEmail(), // Use the current user's email dynamically
-      'content': commentText, // Use the comment text passed to the function
+      'communityName': communityName,
+      'senderEmail': userController.getCurrentUserEmail(),
+      'content': commentText,
     });
 
     try {
+      print("Sending request to add comment: $body");
       final response = await http.post(url, headers: headers, body: body);
 
+      print("Response status: ${response.statusCode}");
+      print("Response body: ${response.body}");
+
       if (response.statusCode == 200) {
-        print("Commentaire ajouté avec succès !");
-        // Optionally, fetch updated comments list after adding a new comment
-        await getComments();
+        print("Comment added successfully!");
+        await getComments(communityName);
       } else {
-        print('Erreur lors de l\'ajout du commentaire: ${response.statusCode}');
+        print("Error adding comment: ${response.reasonPhrase}");
       }
     } catch (e) {
-      print('Erreur lors de l\'envoi de la requête: $e');
+      print("Error during request: $e");
     }
   }
 
